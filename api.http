@@ -9,8 +9,8 @@ Content-Type: application/json
 
 {
   "id": "5ad1a235-0d9c-410a-b32b-220d91689a08",
-  "title": "Inception",
-  "year": 2010,
+  "title": "Inception 2",
+  "year": 2011,
   "director": "Christopher Nolan",
   "duration": 148,
   "poster": "https://m.media-amazon.com/images/I/91Rc8cAmnAL._AC_UF1000,1000_QL80_.jpg",
@@ -22,3 +22,39 @@ Content-Type: application/json
   "rate": 8.8,
   "salchicon": 123
 }
+
+###
+
+PUT  http://localhost:1234/movies
+Content-Type: application/json
+
+{
+  "id": "5ad1a235-0d9c-410a-b32b-220d91689a08",
+  "title": "Inception 3",
+  "year": 2010,
+  "director": "Christopher Nolan",
+  "duration": 150,
+  "poster": "https://m.media-amazon.com/images/I/91Rc8cAmnAL._AC_UF1000,1000_QL80_.jpg",
+  "genre": [
+    "Action",
+    "Adventure",
+    "Sci-Fi"
+  ],
+  "rate": 9.5,
+  "salchicon": 123
+}
+
+###
+
+PATCH    http://localhost:1234/movies/5ad1a235-0d9c-410a-b32b-220d91689a08
+Content-Type: application/json
+
+{
+  "title": "Inception",
+  "year": 2000,
+    "rate": 9.5
+
+}
+
+###
+DELETE http://localhost:1234/movies/5ad1a235-0d9c-410a-b32b-220d91689a08

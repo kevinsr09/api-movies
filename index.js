@@ -1,15 +1,37 @@
 import express from 'express'
 import { createRequire } from 'node:module'
 import cors from 'cors'
-import z from 'zod'
 import crypto from 'node:crypto'
+import { validateDataMovie, validatePartialDataMovie } from './schemas/movieSchema.js'
 
 const require = createRequire(import.meta.url)
 const movies = require('./movies.json')
 
 const app = express()
 
-app.use(cors())
+app.use(cors({
+  origin: (origin, callback) => {
+    const ACCEPTED_ORIGINS = [
+      'http://localhost:8080',
+      'http://localhost:1234',
+      'https://movies.com',
+      'https://midu.dev'
+    ]
+
+    if (ACCEPTED_ORIGINS.includes(origin)) {
+      return callback(null, true)
+    }
+
+    if (!origin) {
+      return callback(null, true)
+    }
+
+    return callback(new Error('Not allowed by CORS'))
+  }
+}))
+
+app.disable('x-powered-by')
+
 app.use(express.json())
 
 app.get('/', (req, res) => {
@@ -31,46 +53,83 @@ app.get('/movies/:id', (req, res) => {
   const { id } = req.params
   const movie = movies.find(mov => mov.id === id)
 
-  if (!movie) return
+  if (!movie) return res.status(404).json({ error: 'Movie not fount' })
   res.json(movie)
 })
 
 app.post('/movies', (req, res) => {
   const movieData = req.body
-  console.log(movieData)
-  const movieSchema = z.object({
-    title: z.string({
-      invalid_type_error: 'Movie title must be a string',
-      required_error: 'Movie title is required.'
-    }),
-    year: z.number().int().min(1900).max(2024),
-    director: z.string(),
-    duration: z.number().int().positive(),
-    rate: z.number().min(0).max(10).default(5),
-    poster: z.string().url({
-      message: 'Poster must be a valid URL'
-    }),
-    genre: z.array(
-      z.enum(['Action', 'Adventure', 'Crime', 'Comedy', 'Drama', 'Fantasy', 'Horror', 'Thriller', 'Sci-Fi']),
-      {
-        required_error: 'Movie genre is required.',
-        invalid_type_error: 'Movie genre must be an array of enum Genre'
-      }
-    )
-  })
 
-  const aceptedMovie = movieSchema.safeParse(movieData)
-  if (!aceptedMovie.success) return res.status(404).json(aceptedMovie.error.message)
+  const aceptedMovie = validateDataMovie(movieData)
 
-  movies.push({
-    ...movieData,
-    id: crypto.randomUUID
-  })
-  res.status(201).json(movieData)
+  if (!aceptedMovie.success) return res.status(404).json(JSON.parse(aceptedMovie.error.message))
+
+  const newMovie = {
+    id: crypto.randomUUID(),
+    ...aceptedMovie.data
+  }
+
+  movies.push(newMovie)
+
+  res.status(201).json(newMovie)
 })
 
 app.put('/movies', (req, res) => {
+  const { id } = req.body
 
+  if (!id) return res.status(404).json({ error: 'id is required' })
+
+  const movie = movies.findIndex(movie => movie.id === id)
+  if (movie < 0) return res.status(404).json({ error: 'Movie not fount' })
+
+  const movieData = req.body
+
+  const aceptedMovie = validateDataMovie(movieData)
+  if (!aceptedMovie.success) return res.status(404).json(JSON.parse(aceptedMovie.error.message))
+
+  const newDataMovie = {
+    id,
+    ...aceptedMovie.data
+  }
+
+  movies[movie] = newDataMovie
+
+  res.status(201).json(newDataMovie)
+})
+
+app.patch('/movies/:id', (req, res) => {
+  const { id } = req.params
+
+  const indexMovie = movies.findIndex(movie => movie.id === id)
+  if (indexMovie < 0) return res.status(404).json({ error: 'Movie not fount' })
+
+  const movieData = req.body
+
+  const aceptedMovie = validatePartialDataMovie(movieData)
+  if (!aceptedMovie.success) return res.status(404).json(JSON.parse(aceptedMovie.error.message))
+
+  const newDataMovie = {
+    ...movies[indexMovie],
+    ...aceptedMovie.data
+  }
+
+  movies[indexMovie] = newDataMovie
+  res.status(201).json(newDataMovie)
+})
+
+app.delete('/movies/:id', (req, res) => {
+  const { id } = req.params
+
+  const indexMovie = movies.findIndex(movie => movie.id === id)
+  if (indexMovie < 0) return res.status(404).json({ error: 'Movie not fount' })
+
+  movies.splice(indexMovie, 1)
+
+  res.json({ message: 'movie deleted' })
+})
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'page no fount' })
 })
 
 const PORT = process.env.PORT ?? 1234
