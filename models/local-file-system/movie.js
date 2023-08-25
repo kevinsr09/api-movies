@@ -37,7 +37,27 @@ export class MovieModel {
     }
 
     movies.push(newMovie)
-    console.log(newMovie)
     return successfully({ data: newMovie })
+  }
+
+  static async update ({ id, input }) {
+    const movieIndex = movies.findIndex(movie => movie.id === id)
+
+    if (movieIndex < 0) return unsuccessfully({ message: 'Movie not fount' })
+
+    movies[movieIndex] = {
+      ...movies[movieIndex],
+      ...input
+    }
+    return successfully({ data: movies[movieIndex] })
+  }
+
+  static async delete ({ id }) {
+    const indexMovie = movies.findIndex(movie => movie.id === id)
+
+    if (indexMovie < 0) return unsuccessfully({ message: 'Movie not fount' })
+
+    movies.splice(indexMovie, 1)
+    return { success: true, message: 'Movie deleted' }
   }
 }
